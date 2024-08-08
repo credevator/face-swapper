@@ -1,14 +1,11 @@
+import argparse
 import os
 import cv2
 import numpy as np
-from PIL import Image
-import argparse
 import torch
-from onnxruntime import InferenceSession
-import torchvision.transforms as transforms
-
+import subprocess
 from VideoManager import VideoManager
-from Models import Models  # Assuming you have a Models class for face detection and recognition
+from Models import Models  # Ensure this import works correctly for your models
 
 def main(input_video_path, input_image_path, output_video_path):
     # Initialize models and video manager
@@ -19,14 +16,11 @@ def main(input_video_path, input_image_path, output_video_path):
     vm.load_target_image(input_image_path)
     vm.load_target_video(input_video_path)
 
-    # Simulate finding faces and assigning found faces (normally done by GUI)
-    vm.find_faces()
-
-    # Assuming only one face to swap from input image, assigning found faces manually
-    if vm.target_faces:
-        first_face = vm.target_faces[0]  # Use the first detected face for swapping
-        first_face["ButtonState"] = True
-        vm.assign_found_faces([first_face])
+    # Detect face in the input image
+    input_image = cv2.imread(input_image_path)
+    input_image_rgb = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
+    input_embedding = vm.find_faces_in_image(input_image_rgb)
+    vm.found_faces = [{'Embedding': input_embedding}]
 
     # Process the video frames with swapping
     output_temp_file = output_video_path + "_temp.avi"

@@ -1217,3 +1217,29 @@ class VideoManager():
         # test = swap.permute(1, 2, 0)
         # test = test.cpu().numpy()
         # cv2.imwrite('2.jpg', test) 
+
+    def find_faces_in_image(self, image):
+        img = torch.from_numpy(image).to('cuda')
+        img = img.permute(2, 0, 1)
+
+        kpss = self.models.run_detect(img, max_num=1)[0]
+        face_emb, _ = self.models.run_recognize(img, kpss)
+        
+        return face_emb
+    
+    def find_faces_in_video(self):
+        if not self.is_video_loaded:
+            raise ValueError("No video is loaded.")
+
+        self.capture.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
+        success, frame = self.capture.read()
+
+        if not success:
+            raise ValueError("Cannot read frame from video.")
+
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        faces = self.models.run_detect(torch.from_numpy(rgb_frame).permute(2, 0, 1).to('cuda'), max_num=50)
+
+        for kps in faces:
+            face_emb, cropped_img = self.models.run_recognize(rgb_frame, kps)
+            self.found_faces.append({'Embedding': face_emb, 'Image': cropped_img})
